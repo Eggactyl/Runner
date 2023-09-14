@@ -11,7 +11,8 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 var SupportLink *string
@@ -42,7 +43,7 @@ func main() {
 
 				currentPid := os.Getpid()
 
-				if err := syscall.Kill(currentPid, syscall.SIGINT); err != nil {
+				if err := unix.Kill(currentPid, unix.SIGINT); err != nil {
 					log.Fatalln(err)
 				}
 
@@ -77,11 +78,11 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 
 	cmd = exec.Command("bash", "-c", cmdArgs)
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	cmd.SysProcAttr = &unix.SysProcAttr{Setsid: true}
 
 	//Channels to notify if parent has call to shut down
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGSTOP)
+	signal.Notify(sigChan, unix.SIGINT, unix.SIGTERM)
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -128,7 +129,7 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 
 	go func() {
 		<-sigChan
-		if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGINT); err != nil {
+		if err := unix.Kill(-cmd.Process.Pid, unix.SIGINT); err != nil {
 			fmt.Println("Uh oh! I seem to have run into an error!")
 			fmt.Printf("Please contact support at %s\n", *SupportLink)
 			log.Fatalln(err)
