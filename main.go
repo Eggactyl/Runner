@@ -74,8 +74,6 @@ func main() {
 
 func startMainProcess(userInput chan string, notifyChan chan string) {
 
-	fmt.Println(*Script)
-
 	cmd := exec.Command("bash", "-c", *Script)
 
 	cmd.SysProcAttr = &unix.SysProcAttr{Setsid: true}
@@ -117,6 +115,20 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 		log.Fatalln(err)
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	//Handle stdout
+	go func() {
+		defer wg.Done()
+		io.Copy(os.Stdout, stdout)
+	}()
+
+	go func() {
+		defer wg.Done()
+		io.Copy(os.Stderr, stderr)
+	}()
+
 	go func() {
 		for input := range userInput {
 			if _, err := fmt.Fprintln(stdin, input); err != nil {
@@ -136,23 +148,17 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 		}
 	}()
 
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	//Handle stdout
-	go func() {
-		defer wg.Done()
-		io.Copy(os.Stdout, stdout)
-	}()
-
-	go func() {
-		defer wg.Done()
-		io.Copy(os.Stderr, stderr)
-	}()
-
 	wg.Wait()
 
-	_ = cmd.Wait()
+	if err := cmd.Wait(); err != nil {
+
+		if _, ok := err.(*exec.ExitError); ok {
+			fmt.Println("Uh oh! I seem to have run into an error!")
+			fmt.Printf("Please contact support at %s\n", *SupportLink)
+			log.Fatalln(err)
+		}
+
+	}
 
 	notifyChan <- "closed"
 
