@@ -21,6 +21,8 @@ var Script *string
 func init() {
 	SupportLink = flag.String("support-link", "https://example.com", "https://example.com")
 	Script = flag.String("script", "", "/path/to/executable")
+
+	flag.Parse()
 }
 
 func main() {
@@ -72,11 +74,9 @@ func main() {
 
 func startMainProcess(userInput chan string, notifyChan chan string) {
 
-	var cmd *exec.Cmd
+	fmt.Println(*Script)
 
-	cmdArgs := strings.Join(append([]string{*Script}, os.Args[1:]...), " ")
-
-	cmd = exec.Command("bash", "-c", cmdArgs)
+	cmd := exec.Command("bash", "-c", *Script)
 
 	cmd.SysProcAttr = &unix.SysProcAttr{Setsid: true}
 
