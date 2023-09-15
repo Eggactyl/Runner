@@ -20,7 +20,7 @@ var SupportLink *string
 var Script *string
 
 func init() {
-	SupportLink = flag.String("support-link", "https://example.com", "https://example.com")
+	SupportLink = flag.String("support-link", "", "https://example.com")
 	Script = flag.String("script", "", "/path/to/executable")
 
 	flag.Parse()
@@ -109,7 +109,9 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		fmt.Println("Uh oh! I seem to have run into an error!")
-		fmt.Printf("Please contact support at %s\n", *SupportLink)
+		if len(*SupportLink) > 0 {
+			fmt.Printf("Please contact support at %s\n", *SupportLink)
+		}
 		log.Fatalln(err)
 	}
 
@@ -118,7 +120,9 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		fmt.Println("Uh oh! I seem to have run into an error!")
-		fmt.Printf("Please contact support at %s\n", *SupportLink)
+		if len(*SupportLink) > 0 {
+			fmt.Printf("Please contact support at %s\n", *SupportLink)
+		}
 		log.Fatalln(err)
 	}
 
@@ -126,7 +130,9 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 
 	if err := cmd.Start(); err != nil {
 		fmt.Println("Uh oh! I seem to have run into an error!")
-		fmt.Printf("Please contact support at %s\n", *SupportLink)
+		if len(*SupportLink) > 0 {
+			fmt.Printf("Please contact support at %s\n", *SupportLink)
+		}
 		log.Fatalln(err)
 	}
 
@@ -148,7 +154,9 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 		for input := range userInput {
 			if _, err := fmt.Fprintln(stdin, input); err != nil {
 				fmt.Println("Uh oh! I seem to have run into an error!")
-				fmt.Printf("Please contact support at %s\n", *SupportLink)
+				if len(*SupportLink) > 0 {
+					fmt.Printf("Please contact support at %s\n", *SupportLink)
+				}
 				log.Fatalln(err)
 			}
 		}
@@ -158,7 +166,9 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 		<-sigChan
 		if err := unix.Kill(-cmd.Process.Pid, unix.SIGINT); err != nil {
 			fmt.Println("Uh oh! I seem to have run into an error!")
-			fmt.Printf("Please contact support at %s\n", *SupportLink)
+			if len(*SupportLink) > 0 {
+				fmt.Printf("Please contact support at %s\n", *SupportLink)
+			}
 			log.Fatalln(err)
 		}
 	}()
@@ -169,7 +179,9 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 
 		if _, ok := err.(*exec.ExitError); ok {
 			fmt.Println("Uh oh! I seem to have run into an error!")
-			fmt.Printf("Please contact support at %s\n", *SupportLink)
+			if len(*SupportLink) > 0 {
+				fmt.Printf("Please contact support at %s\n", *SupportLink)
+			}
 			log.Fatalln(err)
 		}
 
