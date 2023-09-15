@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	seccomp "github.com/seccomp/libseccomp-golang"
 	"golang.org/x/sys/unix"
 )
 
@@ -26,6 +27,20 @@ func init() {
 }
 
 func main() {
+
+	filter, err := seccomp.NewFilter(seccomp.ActAllow)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	//Block fallocate call to prevent disk fill
+	if err := filter.AddRule(unix.SYS_FALLOCATE, seccomp.ActKillThread.SetReturnCode(int16(unix.EACCES))); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := filter.Load(); err != nil {
+		log.Fatalln(err)
+	}
 
 	userInput := make(chan string)
 	notifyChan := make(chan string)
