@@ -101,8 +101,6 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 
 	cmd := exec.Command("bash", "-c", cmdWithArgs)
 
-	cmd.SysProcAttr = &unix.SysProcAttr{Setsid: true}
-
 	//Channels to notify if parent has call to shut down
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, unix.SIGINT, unix.SIGTERM)
