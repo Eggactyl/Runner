@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	seccomp "github.com/seccomp/libseccomp-golang"
+	seccomp "github.com/elastic/go-seccomp-bpf"
 	"golang.org/x/sys/unix"
 )
 
@@ -28,17 +28,23 @@ func init() {
 
 func main() {
 
-	filter, err := seccomp.NewFilter(seccomp.ActAllow)
-	if err != nil {
-		log.Fatalln(err)
+	filter := seccomp.Filter{
+		NoNewPrivs: true,
+		Flag:       seccomp.FilterFlagTSync,
+		Policy: seccomp.Policy{
+			DefaultAction: seccomp.ActionAllow,
+			Syscalls: []seccomp.SyscallGroup{
+				{
+					Action: seccomp.ActionKillProcess,
+					Names: []string{
+						"fallocate",
+					},
+				},
+			},
+		},
 	}
 
-	//Block fallocate call to prevent disk fill
-	if err := filter.AddRule(unix.SYS_FALLOCATE, seccomp.ActKillThread.SetReturnCode(int16(unix.EACCES))); err != nil {
-		log.Fatalln(err)
-	}
-
-	if err := filter.Load(); err != nil {
+	if err := seccomp.LoadFilter(filter); err != nil {
 		log.Fatalln(err)
 	}
 

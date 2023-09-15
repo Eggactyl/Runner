@@ -18,15 +18,28 @@ If you want to include support information in the errors:
 ## How to build
 
 - UPX, you can download it [here](https://upx.github.io)
-- Golang 1.21 (You can probably use older versions, but I used this to build this version)
+- Golang 1.21, you can download it [here](https://go.dev/dl/) (You can probably use older versions, but I used this to build this version)
 - Make
 
-To build the app:
+### Install UPX
+You can either use your package manager if possible:
+```bash
+sudo apt install upx
+```
+
+Or you can download it and install it manually:
+```
+wget https://github.com/upx/upx/releases/download/v4.1.0/upx-4.1.0-amd64_linux.tar.xz
+sudo tar -xvf upx-4.1.0-amd64_linux.tar.xz -C /usr/local/bin upx-4.1.0-amd64_linux/upx
+```
+
+### Build the App
+You can just run make:
 ```bash
 make
 ```
 
-To install it: (If you want to?)
+Or you can use the go command to build it:
 ```bash
-sudo make install
+go build *.go -ldflags="-s -w" -trimpath -o runner *.go
 ```
