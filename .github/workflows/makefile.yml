@@ -17,6 +17,9 @@ jobs:
       with:
         # The Go version to download (if necessary) and use. Supports semver spec and ranges. Be sure to enclose this option in single quotation marks.
         go-version: 1.21
+
+    - name: Add Dependencies
+      run: apt install libseccomp-dev
         
     - name: Build Project
       run: make
@@ -27,7 +30,7 @@ jobs:
       uses: svenstaro/upload-release-action@2.7.0
       with:
         # GitHub token.
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        repo_token: ${{ secrets.GH_TOKEN }}
         # Local file to upload.
         file: build/*
         # Name of the asset. When not provided will use the file name. Unused if file_glob is set to "true".
