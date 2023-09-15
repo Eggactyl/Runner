@@ -30,7 +30,7 @@ jobs:
       uses: svenstaro/upload-release-action@2.7.0
       with:
         # GitHub token.
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        repo_token: ${{ secrets.GH_TOKEN }}
         # Local file to upload.
         file: build/*
         # Name of the asset. When not provided will use the file name. Unused if file_glob is set to "true".
