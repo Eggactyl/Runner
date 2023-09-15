@@ -1,5 +1,5 @@
-# Eggactyl Old Runner
-This is what Eggactyl used to use to run the whole thing. I have made some modifications to make it easier for other people to use it if they want to. This was made to circumvent a bug in Pterodactyl which makes it impossible to get a SIGINT in the application.  
+# Eggactyl Runner
+This is what Eggactyl uses to run the whole script. I have made some modifications to make it easier for other people to use it if they want to. This was made to circumvent a bug in Pterodactyl which makes it impossible to get a SIGINT in the application.  
 
 This is probably not the best way to do this stuff, but it does work at least. If people do want to make commits, I am willing to merge them.
 
