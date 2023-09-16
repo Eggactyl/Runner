@@ -18,10 +18,12 @@ import (
 
 var SupportLink *string
 var Script *string
+var ScriptArgs *string
 
 func init() {
 	SupportLink = flag.String("support-link", "", "https://example.com")
 	Script = flag.String("script", "", "/path/to/executable")
+	ScriptArgs = flag.String("script-args", "", "--enable-something")
 
 	flag.Parse()
 }
@@ -95,9 +97,9 @@ func main() {
 
 func startMainProcess(userInput chan string, notifyChan chan string) {
 
-	cmd := exec.Command("bash", "-c", *Script)
+	cmdWithArgs := strings.Join(append([]string{*Script}, *ScriptArgs), " ")
 
-	cmd.SysProcAttr = &unix.SysProcAttr{Setsid: true}
+	cmd := exec.Command("bash", "-c", cmdWithArgs)
 
 	//Channels to notify if parent has call to shut down
 	sigChan := make(chan os.Signal, 1)
