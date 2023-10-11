@@ -100,6 +100,7 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 	cmdWithArgs := strings.Join(append([]string{*Script}, *ScriptArgs), " ")
 
 	cmd := exec.Command("bash", "-c", cmdWithArgs)
+	cmd.SysProcAttr = &unix.SysProcAttr{Setsid: true}
 
 	//Channels to notify if parent has call to shut down
 	sigChan := make(chan os.Signal, 1)
@@ -185,12 +186,17 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 
 	if err := cmd.Wait(); err != nil {
 
-		if _, ok := err.(*exec.ExitError); ok {
-			fmt.Println("Uh oh! I seem to have run into an error!")
-			if len(*SupportLink) > 0 {
-				fmt.Printf("Please contact support at %s\n", *SupportLink)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+
+			//Ignore interrupts
+			if exitErr.Error() != "signal: interrupt" {
+				fmt.Println("Uh oh! I seem to have run into an error!")
+				if len(*SupportLink) > 0 {
+					fmt.Printf("Please contact support at %s\n", *SupportLink)
+				}
+				log.Fatalln(err)
 			}
-			log.Fatalln(err)
+
 		}
 
 	}
