@@ -26,7 +26,6 @@ If you want to pass flags onto the script:
 
 ## How to build
 
-- UPX, you can download it [here](https://upx.github.io)
 - Golang 1.21, you can download it [here](https://go.dev/dl/) (You can probably use older versions, but I used this to build this version)
 - Make
 
@@ -43,21 +42,6 @@ wget https://go.dev/dl/go${VER}.linux-${ARCH}.tar.gz
 sudo tar -xvf go${VER}.linux-${ARCH}.tar.gz -C /usr/local/
 rm go${VER}.linux-${ARCH}.tar.gz
 echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc
-```
-
-### Install UPX
-
-You can either use your package manager if possible:
-
-```bash
-sudo apt install upx
-```
-
-Or you can download it and install it manually:
-
-```bash
-wget https://github.com/upx/upx/releases/download/v4.1.0/upx-4.1.0-amd64_linux.tar.xz
-sudo tar -xvf upx-4.1.0-amd64_linux.tar.xz -C /usr/local/bin upx-4.1.0-amd64_linux/upx
 ```
 
 ### Build the App
