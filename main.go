@@ -19,35 +19,41 @@ import (
 var SupportLink *string
 var Script *string
 var ScriptArgs *string
+var AntiDiskFill *bool
 
 func init() {
 	SupportLink = flag.String("support-link", "", "https://example.com")
 	Script = flag.String("script", "", "/path/to/executable")
 	ScriptArgs = flag.String("script-args", "", "--enable-something")
+	AntiDiskFill = flag.Bool("anti-disk-fill", true, "--anti-disk-fill")
 
 	flag.Parse()
 }
 
 func main() {
 
-	filter := seccomp.Filter{
-		NoNewPrivs: true,
-		Flag:       seccomp.FilterFlagTSync,
-		Policy: seccomp.Policy{
-			DefaultAction: seccomp.ActionAllow,
-			Syscalls: []seccomp.SyscallGroup{
-				{
-					Action: seccomp.ActionKillProcess,
-					Names: []string{
-						"fallocate",
+	if *AntiDiskFill {
+
+		filter := seccomp.Filter{
+			NoNewPrivs: true,
+			Flag:       seccomp.FilterFlagTSync,
+			Policy: seccomp.Policy{
+				DefaultAction: seccomp.ActionAllow,
+				Syscalls: []seccomp.SyscallGroup{
+					{
+						Action: seccomp.ActionKillProcess,
+						Names: []string{
+							"fallocate",
+						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	if err := seccomp.LoadFilter(filter); err != nil {
-		log.Fatalln(err)
+		if err := seccomp.LoadFilter(filter); err != nil {
+			log.Fatalln(err)
+		}
+
 	}
 
 	userInput := make(chan string)
@@ -99,7 +105,7 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 
 	cmdWithArgs := strings.Join(append([]string{*Script}, *ScriptArgs), " ")
 
-	cmd := exec.Command("bash", "-c", cmdWithArgs)
+	cmd := exec.Command("/bin/bash", "-c", cmdWithArgs)
 	cmd.SysProcAttr = &unix.SysProcAttr{Setsid: true}
 
 	//Channels to notify if parent has call to shut down
