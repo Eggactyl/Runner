@@ -64,7 +64,7 @@ func main() {
 
 			//Because of an issue with the wings, it cannot process SIGINT, and will not send any signals to the applicatiion.
 			//GitHub Issue: https://github.com/pterodactyl/panel/issues/4783
-			if strings.HasPrefix(text, "EGG_SIGNAL") && strings.HasSuffix(text, "_SIGINT") {
+			if text == "EGG_SIGNAL_SIGINT" || text == "^C" {
 
 				currentPid := os.Getpid()
 
