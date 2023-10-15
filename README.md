@@ -24,6 +24,12 @@ If you want to pass flags onto the script:
 /path/to/eggactyl_runner --script /path/to/script --script-args="--enable-something --enable-something-else --maybe-another --maybe-another-one --wow-this-is-a-lot-of-flags --never-ever-heard-of-subcommands --gonna-use-something-else --give-me-more-flags --you-really-should-use-a-config-file --up-and-up-the-flags-go --never-ever-do-this-please --gonna-stop-please-do --01101100-01100101-01110100 --you-better-stop-this --down-and-down-we-go e."
 ```
 
+If you want to disable the Anti disk-fill:
+
+```bash
+/path/to/eggactyl_runner --anti-disk-fill=false --script /path/to/script
+```
+
 ## How to build
 
 - Golang 1.21, you can download it [here](https://go.dev/dl/) (You can probably use older versions, but I used this to build this version)
