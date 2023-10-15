@@ -12,7 +12,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/dustin/go-humanize"
 	seccomp "github.com/elastic/go-seccomp-bpf"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
 	"golang.org/x/sys/unix"
 )
 
@@ -20,17 +23,70 @@ var SupportLink *string
 var Script *string
 var ScriptArgs *string
 var AntiDiskFill *bool
+var ShowHWInfo *bool
 
 func init() {
 	SupportLink = flag.String("support-link", "", "https://example.com")
 	Script = flag.String("script", "", "/path/to/executable")
 	ScriptArgs = flag.String("script-args", "", "--enable-something")
 	AntiDiskFill = flag.Bool("anti-disk-fill", true, "--anti-disk-fill")
+	ShowHWInfo = flag.Bool("show-hw-info", false, "--show-hw-info")
 
 	flag.Parse()
 }
 
 func main() {
+
+	fmt.Println("\033[H\033[2J")
+
+	if *ShowHWInfo {
+		memInfo, err := mem.VirtualMemory()
+		if err != nil {
+			return
+		}
+
+		swapInfo, err := mem.SwapMemory()
+		if err != nil {
+			return
+		}
+
+		cpuInfo, err := cpu.Info()
+		if err != nil {
+			return
+		}
+
+		totalRam := humanize.IBytes(memInfo.Total)
+		usedRam := humanize.IBytes(memInfo.Used)
+
+		totalSwap := humanize.IBytes(swapInfo.Total)
+		usedSwap := humanize.IBytes(swapInfo.Used)
+
+		fmt.Println("\033[4m\033[1m\033[38;5;33mHardware Information:\033[0m")
+
+		fmt.Printf("  \033[38;5;33mCPU Model: %s\033[0m\n", cpuInfo[0].ModelName)
+
+		var memUsagePercent string
+		var swapUsagePercent string
+
+		if memInfo.UsedPercent >= 90.0 {
+			memUsagePercent = fmt.Sprintf("\033[3m\033[1m\033[38;5;210m(%.2f%%)\033[0m", memInfo.UsedPercent)
+		} else if memInfo.UsedPercent >= 70.0 {
+			memUsagePercent = fmt.Sprintf("\033[3m\033[1m\033[38;5;214m(%.2f%%)\033[0m", memInfo.UsedPercent)
+		} else {
+			memUsagePercent = fmt.Sprintf("\033[3m\033[1m\033[38;5;34m(%.2f%%)\033[0m", memInfo.UsedPercent)
+		}
+
+		if swapInfo.UsedPercent >= 90.0 {
+			swapUsagePercent = fmt.Sprintf("\033[3m\033[1m\033[38;5;210m(%.2f%%)\033[0m", swapInfo.UsedPercent)
+		} else if swapInfo.UsedPercent >= 70.0 {
+			swapUsagePercent = fmt.Sprintf("\033[3m\033[1m\033[38;5;214m(%.2f%%)\033[0m", swapInfo.UsedPercent)
+		} else {
+			swapUsagePercent = fmt.Sprintf("\033[3m\033[1m\033[38;5;34m(%.2f%%)\033[0m", swapInfo.UsedPercent)
+		}
+
+		fmt.Printf("  \033[38;5;33mRAM Usage: %s / %s \033[0m%s \n", usedRam, totalRam, memUsagePercent)
+		fmt.Printf("  \033[38;5;33mSwap Usage: %s / %s \033[0m%s \n", usedSwap, totalSwap, swapUsagePercent)
+	}
 
 	if *AntiDiskFill {
 
