@@ -51,6 +51,10 @@ func init() {
 	repoPat := os.Getenv("GIT_PAT")
 	repoBranch := os.Getenv("GIT_BRANCH")
 
+	if len(repoBranch) < 1 {
+		repoBranch = "main"
+	}
+
 	var cfg YamlConfig
 	if err := LoadConfig(fmt.Sprintf("%s/eggactyl_config.yml", os.Getenv("HOME")), &cfg); err != nil {
 		log.Fatalln(err)
