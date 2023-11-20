@@ -2,21 +2,30 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 
+	"eggactyl.cloud/runner/ui"
 	"github.com/dustin/go-humanize"
 	seccomp "github.com/elastic/go-seccomp-bpf"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 	"golang.org/x/sys/unix"
+	"gopkg.in/yaml.v3"
 )
 
 var SupportLink *string
@@ -33,6 +42,143 @@ func init() {
 	ShowHWInfo = flag.Bool("show-hw-info", false, "--show-hw-info")
 
 	flag.Parse()
+
+	if _, err := os.Stat(fmt.Sprintf("%s/eggactyl_config.yml", os.Getenv("HOME"))); os.IsNotExist(err) {
+		ConvertConfig()
+	}
+
+	repoUrl := os.Getenv("GIT_REPO")
+	repoPat := os.Getenv("GIT_PAT")
+	repoBranch := os.Getenv("GIT_BRANCH")
+
+	var cfg YamlConfig
+	if err := LoadConfig(fmt.Sprintf("%s/eggactyl_config.yml", os.Getenv("HOME")), &cfg); err != nil {
+		log.Fatalln(err)
+	}
+
+	if strings.HasPrefix(cfg.Software.SoftwareType, "discord_") && len(repoUrl) > 0 {
+
+		spinner := ui.Spinner("Grabbing git repo")
+
+		parsedUrl, err := url.Parse(repoUrl)
+		if err != nil {
+			log.Fatalf("invalid url: %v\n", err)
+		}
+
+		if parsedUrl.Scheme == "ssh" {
+			log.Fatalln("ssh urls are currently not supported")
+		}
+
+		if parsedUrl.Scheme == "" {
+			parsedUrl.Scheme = "https"
+		}
+
+		gitRepoUrl := parsedUrl.String()
+
+		cloneOptions := git.CloneOptions{
+			URL:           gitRepoUrl,
+			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", repoBranch)),
+		}
+
+		if len(repoPat) > 0 {
+			cloneOptions.Auth = &http.BasicAuth{
+				Username: "eggactyl",
+				Password: repoPat,
+			}
+		}
+
+		_, err = git.PlainClone("/opt/git_repo", false, &cloneOptions)
+		if err != nil && err == git.ErrRepositoryAlreadyExists {
+
+			repo, err := git.PlainOpen("/opt/git_repo")
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			rem, err := repo.Remote("origin")
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			if rem.Config().URLs[0] != gitRepoUrl {
+
+				err = repo.DeleteRemote("origin")
+				if err != nil {
+					log.Fatalln(err)
+				}
+
+				rem, err = repo.CreateRemote(&config.RemoteConfig{
+					Name: "origin",
+					URLs: []string{gitRepoUrl},
+				})
+
+				if err != nil {
+					log.Fatalln(err)
+				}
+
+			}
+
+			fetchOptions := git.FetchOptions{}
+
+			if len(repoPat) > 0 {
+				fetchOptions.Auth = &http.BasicAuth{
+					Username: "eggactyl",
+					Password: repoPat,
+				}
+			}
+
+			rem.Fetch(&fetchOptions)
+
+			worktree, err := repo.Worktree()
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			err = worktree.Checkout(&git.CheckoutOptions{
+				Branch: plumbing.ReferenceName(fmt.Sprintf("refs/remotes/origin/%s", repoBranch)),
+				Force:  true,
+			})
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+		} else if err != nil {
+			log.Fatalln(err)
+		}
+
+		fileList, err := getFileList("/opt/git_repo")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		destinationDir := os.Getenv("HOME")
+
+		for _, file := range fileList {
+			sourcePath := filepath.Join("/opt/git_repo", file)
+			destinationPath := filepath.Join(destinationDir, file)
+
+			if strings.HasSuffix(file, "/") {
+				err := os.MkdirAll(destinationPath, os.ModePerm)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				err := os.Symlink(sourcePath, destinationPath)
+				if err != nil && !os.IsExist(err) {
+					log.Fatal(err)
+				}
+			}
+		}
+
+		err = deleteNonexistentFiles(destinationDir, fileList)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		spinner.Success("Grabbed git repo")
+
+	}
+
 }
 
 func main() {
@@ -146,6 +292,7 @@ func main() {
 
 	go startMainProcess(userInput, notifyChan)
 
+	//lint:ignore S1000 There is no issue with this.
 	for {
 
 		select {
@@ -264,5 +411,33 @@ func startMainProcess(userInput chan string, notifyChan chan string) {
 	}
 
 	notifyChan <- "closed"
+
+}
+
+func LoadConfig(file string, out *YamlConfig) error {
+
+	cfgFile, err := os.ReadFile(file)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+
+			if _, err := os.Create(file); err != nil {
+				return err
+			}
+
+			cfgFile, err = os.ReadFile(file)
+			if err != nil {
+				return err
+			}
+
+		} else {
+			return err
+		}
+	}
+
+	if err := yaml.Unmarshal(cfgFile, out); err != nil {
+		return err
+	}
+
+	return nil
 
 }
